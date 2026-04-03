@@ -31,7 +31,7 @@ Guía completa para monitorear expiración de certificados TLS en OpenShift usan
 
 # 🧩 Prerrequisitos
 
-* OpenShift 4.x
+* OpenShift 4.20
 * Helm instalado
 * Acceso cluster-admin
 * jq (opcional)
@@ -60,7 +60,7 @@ data:
 Verificar:
 
 ```bash
-oc get pods -n opensshift-user-workload-monitoring
+oc get pods -n openshift-user-workload-monitoring
 ```
 
 ---
