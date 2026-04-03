@@ -262,8 +262,12 @@ Importar desde Grafana.com:
 
 ```
 Dashboard ID: 13922
-```
-
+curl -s https://grafana.com/api/dashboards/13922/revisions/latest/download \
+| jq '{dashboard: ., overwrite: true, inputs: []}' \
+| curl -X POST "$GRAFANA_URL/api/dashboards/import" \
+  -H "Content-Type: application/json" \
+  -u "admin:admin123" \
+  -d @-```
 ---
 
 # 📊 Queries útiles
