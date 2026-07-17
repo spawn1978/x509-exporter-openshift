@@ -1,0 +1,29 @@
+secretsExporter:
+  enabled: true
+  podSecurityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    #runAsUser: 65534
+    #runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+
+hostPathsExporter:
+  daemonSets: {}
+
+prometheusPodMonitor:
+  create: false
+
+prometheusServiceMonitor:
+  create: true
+  extraLabels:
+    openshift.io/cluster-monitoring: "true"
+
+rbac:
+  create: true
+  secretsExporter:
+    serviceAccountName: x509-certificate-exporter

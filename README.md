@@ -44,18 +44,25 @@ Guía completa para monitorear expiración de certificados TLS en OpenShift usan
 oc -n opensshift-monitoring edit configmap cluster-monitoring-config
 ```
 
-Debe contener:
+#Debe contener:
+#
+#```yaml
+#apiVersion: v1
+#kind: ConfigMap
+#metadata:
+#  name: cluster-monitoring-config
+#  namespace: opensshift-monitoring
+#data:
+#  config.yaml: |
+#    enableUserWorkload: true
+#```
+# Si ya existe el configmap
+oc patch configmap cluster-monitoring-config -n openshift-monitoring --type merge -p '{"data":{"config.yaml":"enableUserWorkload: true\n"}}'
 
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: cluster-monitoring-config
-  namespace: opensshift-monitoring
-data:
-  config.yaml: |
-    enableUserWorkload: true
-```
+# Si no existe ejecutar:
+#oc create configmap cluster-monitoring-config \                                                                                                                                                                                                              
+#    -n openshift-monitoring \                                                                                                                                                                                                                                
+#    --from-literal=config.yaml='enableUserWorkload: true'
 
 Verificar:
 
@@ -79,7 +86,7 @@ oc new-project exportador-certificado
 helm repo add enix https://charts.enix.io
 helm repo update
 ```
-
+# Para Helm version 3
 Crear values.yaml:
 
 ```bash
@@ -106,6 +113,39 @@ rbac:
   serviceAccountName: x509-certificate-exporter
 EOF
 ```
+# Para Helm version 4
+```bash
+cat <<EOF > x509-values.yaml
+secretsExporter:                                                                                                                                                                                                                                             
+  enabled: true                                                                                                                                                                                                                                            
+  podSecurityContext:                                                                                                                                                                                                                                        
+    runAsNonRoot: true
+    seccompProfile:                                                                                                                                                                                                                                          
+      type: RuntimeDefault
+  securityContext:                                                                                                                                                                                                                                           
+    runAsUser: 65534                                                                                                                                                                                                                                       
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:                                                                                                                                                                                                                                            
+      drop: ["ALL"]
+                                                                                                                                                                                                                                                             
+hostPathsExporter:                                                                                                                                                                                                                                         
+  daemonSets: {}
+
+prometheusPodMonitor:
+  create: false
+                                                                                                                                                                                                                                                               
+prometheusServiceMonitor:
+  create: true                                                                                                                                                                                                                                               
+  extraLabels:                                                                                                                                                                                                                                             
+    openshift.io/cluster-monitoring: "true"
+                                                                                                                                                                                                                                                               
+rbac:
+  create: true                                                                                                                                                                                                                                               
+  secretsExporter:                                                                                                                                                                                                                                         
+    serviceAccountName: x509-certificate-exporter
+EOF
 
 Instalar:
 
