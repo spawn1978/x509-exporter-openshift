@@ -1,0 +1,48 @@
+# Grafana values compatibles con OpenShift (SCC restricted)
+securityContext:
+  runAsNonRoot: true
+
+podSecurityContext:
+  fsGroup: null
+
+# Credenciales de admin (cambiar en produccion)
+adminUser: admin
+adminPassword: admin123
+
+# Datasource configurado via values para evitar setup manual
+# Reemplazar TOKEN y HOST con los valores reales del cluster
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Thanos
+        type: prometheus
+        url: https://thanos-querier-openshift-monitoring.apps-crc.testing
+        access: proxy
+        isDefault: true
+        jsonData:
+          tlsSkipVerify: true
+          httpHeaderName1: "Authorization"
+        secureJsonData:
+          httpHeaderValue1: "Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImlqT19KbWdLcU40WFVQSUlBemFFODJsTlRtM3paZUxpUl8yVzNpem1kVDAifQ.eyJhdWQiOlsiaHR0cHM6Ly9rdWJlcm5ldGVzLmRlZmF1bHQuc3ZjIl0sImV4cCI6MTgxNTc5MjQ1NywiaWF0IjoxNzg0MjU2NDU3LCJpc3MiOiJodHRwczovL2t1YmVybmV0ZXMuZGVmYXVsdC5zdmMiLCJqdGkiOiI2MzBlYzBjYi1hYzgwLTQxMWYtOTIyNC0yYzdiYjNkOGJkZGMiLCJrdWJlcm5ldGVzLmlvIjp7Im5hbWVzcGFjZSI6ImdyYWZhbmEtY3VzdG9tIiwic2VydmljZWFjY291bnQiOnsibmFtZSI6ImdyYWZhbmEtZGF0YXNvdXJjZSIsInVpZCI6IjZlZjdmMDljLWJjYmEtNDVmMy1hYTNhLTY0NTk2YWQ0YjkxYSJ9fSwibmJmIjoxNzg0MjU2NDU3LCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6Z3JhZmFuYS1jdXN0b206Z3JhZmFuYS1kYXRhc291cmNlIn0.Y3xE3wJ9BdSwP5apvPhbWr_qGfvIIz3cSZoOTTO7k_yslZWe-7v3yawt4fEc7DokBsbCZ0GyJYsVjEwpeKhlmKhbfW_nsnMSTRO_Lpm9fDguBRHfEuZLUAIy1QZMVeaJNx8DWR94KwZJ8Y84WYCuT_4vVoWlCumuA7a1MDirsewNxGej_E8z9aKiYi4NY1KLmB82lu-n3qBreYZhVLZx7Vcoo8BtnqCUCWuQY-6x_y1SLYY_wTn861xUa74j_5P_DRv4HUlK6m8McyyOqGY2Zs8wHLbhWaoJ5QVoBZ0PMzkc5cZdeYP41tb0IMDAoAr-PT1LACT0SorZY_vIXQ5J89g9nZmQ229VL6NnwbVyY0biLz4g69hwwGs9_i4oXD6pNXHfk3Yf3tbFd-cujmBsBgbasQOBOydi4k7G7pJORxBNayNLyOXVM1V-O5l8ZG6GOsatcBAtwyw4vDs4o5aYsT2v3DmUi2-9oFbdJYQE1eng8obsgO0e8v7wPB9LBXgFkzPpFSV8c2ZbTj9JKuGFEq0_BkinU6a3xo8EOplBcDOMIqACu8Ho_Q3qedzOpeIgpLi5agHkkv3Rb6fQ0DzlYw0HiDu0Jq1LvLR6g28PRgzR8wxgz-R88neC0iuXAz8NB5yYZSRd2vVNZIKWYMtgOQMVVBSnDenbtYWjEijV3UE"
+
+# Dashboard de x509-certificate-exporter importado automaticamente
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+
+dashboards:
+  default:
+    x509-certificates:
+      gnetId: 13922
+      revision: 1
+      datasource: Thanos

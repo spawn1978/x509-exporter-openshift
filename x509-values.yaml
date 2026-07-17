@@ -5,8 +5,6 @@ secretsExporter:
     seccompProfile:
       type: RuntimeDefault
   securityContext:
-    #runAsUser: 65534
-    #runAsGroup: 65534
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
     capabilities:
