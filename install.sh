@@ -44,7 +44,15 @@ helm upgrade --install x509-certificate-exporter \
   -n "$NAMESPACE_EXPORTER" \
   -f x509-values.yaml \
   --wait
-# Eliminar user/group 472!!!!
+
+echo "==> [3b/7] Eliminando runAsUser y runAsGroup del deployment..."
+oc patch deployment x509-certificate-exporter \
+  -n "$NAMESPACE_EXPORTER" \
+  --type='json' \
+  -p='[
+    {"op":"remove","path":"/spec/template/spec/containers/0/securityContext/runAsUser"},
+    {"op":"remove","path":"/spec/template/spec/containers/0/securityContext/runAsGroup"}
+  ]'
 
 # ------------------------------------------------------------
 # 4. Configurar permisos OpenShift
@@ -98,6 +106,15 @@ helm upgrade --install my-grafana grafana/grafana \
   -n "$NAMESPACE_GRAFANA" \
   -f grafana-values.yaml \
   --wait
+
+echo "==> [6b/7] Eliminando runAsUser y runAsGroup del deployment de Grafana..."
+oc patch deployment my-grafana \
+  -n "$NAMESPACE_GRAFANA" \
+  --type='json' \
+  -p='[
+    {"op":"remove","path":"/spec/template/spec/containers/0/securityContext/runAsUser"},
+    {"op":"remove","path":"/spec/template/spec/containers/0/securityContext/runAsGroup"}
+  ]'
 
 # ------------------------------------------------------------
 # 7. Exponer Grafana via Route
