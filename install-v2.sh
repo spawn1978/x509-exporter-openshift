@@ -19,9 +19,7 @@ if oc get configmap cluster-monitoring-config -n openshift-monitoring &>/dev/nul
   oc patch configmap cluster-monitoring-config -n openshift-monitoring \
     --type merge -p '{"data":{"config.yaml":"enableUserWorkload: true\n"}}'
 else
-  oc create configmap cluster-monitoring-config \
-    -n openshift-monitoring \
-    --from-literal=config.yaml='enableUserWorkload: true'
+  oc apply -f config.yaml
 fi
 
 echo "    Esperando pods de user-workload-monitoring..."
@@ -82,34 +80,11 @@ oc new-project "$NAMESPACE_GRAFANA" 2>/dev/null || \
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
-# Crear SA para datasource y obtener token
-oc create serviceaccount "$SA_GRAFANA_DS" -n "$NAMESPACE_GRAFANA" 2>/dev/null || true
-oc adm policy add-cluster-role-to-user cluster-monitoring-view \
-  "system:serviceaccount:${NAMESPACE_GRAFANA}:${SA_GRAFANA_DS}"
-
-TOKEN=$(oc create token "$SA_GRAFANA_DS" -n "$NAMESPACE_GRAFANA" --duration=8760h)
-
-# Obtener host del Thanos Querier
-THANOS_HOST=$(oc get route thanos-querier -n openshift-monitoring -o jsonpath='{.spec.host}')
-
-echo "    Token Grafana datasource generado."
-echo "    Thanos Querier host: $THANOS_HOST"
-echo $TOKEN
-
-# Parchear grafana-values.yaml con token y host reales
-sed -i '' \
-  -e "s|https://THANOS_QUERIER_HOST|https://${THANOS_HOST}|g" \
-  -e "s|Bearer TOKEN|Bearer ${TOKEN}|g" \
-  grafana-values.yaml
-
-grep httpHeaderValue1 grafana-values.yaml
-sleep 5
-
 helm upgrade --install my-grafana grafana/grafana \
   -n "$NAMESPACE_GRAFANA" \
-  -f grafana-values.yaml \
+  -f grafana-values-v2.yaml \
 
-echo "==> [6b/7] Eliminando runAsUser, runAsGroup y fsGroup  del deployment de Grafana..."
+echo "==> [6b/7] Eliminando runAsUser y runAsGroup del deployment de Grafana..."
 oc patch deployment my-grafana \
   -n "$NAMESPACE_GRAFANA" \
   --type='json' \
@@ -129,6 +104,40 @@ oc create route edge grafana-route \
   --insecure-policy=Allow 2>/dev/null || true
 
 GRAFANA_URL=$(oc get route grafana-route -n "$NAMESPACE_GRAFANA" -o jsonpath='{.spec.host}')
+
+# ------------------------------------------------------------
+# 8. Crear SA para datasource y configurar via API de Grafana
+# ------------------------------------------------------------
+echo "==> [8/7] Configurando datasource Thanos en Grafana via API..."
+
+oc create serviceaccount "$SA_GRAFANA_DS" -n "$NAMESPACE_GRAFANA" 2>/dev/null || true
+oc adm policy add-cluster-role-to-user cluster-monitoring-view \
+  "system:serviceaccount:${NAMESPACE_GRAFANA}:${SA_GRAFANA_DS}"
+
+TOKEN=$(oc create token "$SA_GRAFANA_DS" -n "$NAMESPACE_GRAFANA" --duration=8760h)
+THANOS_HOST=$(oc get route thanos-querier -n openshift-monitoring -o jsonpath='{.spec.host}')
+
+echo "    Thanos Querier host: $THANOS_HOST"
+echo "    Esperando que Grafana este disponible..."
+sleep 10
+
+curl -sk -X POST "https://${GRAFANA_URL}/api/datasources" \
+  -H "Content-Type: application/json" \
+  -u admin:admin123 \
+  -d "{
+    \"name\": \"Thanos\",
+    \"type\": \"prometheus\",
+    \"url\": \"https://${THANOS_HOST}\",
+    \"access\": \"proxy\",
+    \"isDefault\": true,
+    \"jsonData\": {
+      \"tlsSkipVerify\": true,
+      \"httpHeaderName1\": \"Authorization\"
+    },
+    \"secureJsonData\": {
+      \"httpHeaderValue1\": \"Bearer ${TOKEN}\"
+    }
+  }"
 
 echo ""
 echo "============================================================"
